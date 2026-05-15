@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import { SignupForm } from "./components/SignupForm";
 
 const waLink = (msg) =>
-  `https://wa.me/212635421721?text=${encodeURIComponent(msg)}`;
+  `https://wa.me/212772367438?text=${encodeURIComponent(msg)}`;
 
 const terrains = [
   {
@@ -991,48 +992,7 @@ const Login = ({ setPage }) => (
   </AuthCard>
 );
 
-const Signup = ({ setPage }) => (
-  <AuthCard title="Créer un Compte" subtitle="Rejoignez le réseau privé Atlas Prime Assets">
-    <form style={{ display: "flex", flexDirection: "column", gap: "14px" }} onSubmit={(e) => e.preventDefault()}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-        <div><label style={labelStyle}>Prénom</label><InputField placeholder="Mohammed" /></div>
-        <div><label style={labelStyle}>Nom</label><InputField placeholder="Alami" /></div>
-      </div>
-      <div><label style={labelStyle}>Email</label><InputField placeholder="votre@email.com" type="email" /></div>
-      <div><label style={labelStyle}>Téléphone</label><InputField placeholder="+212 6XX XXX XXX" /></div>
-      <div>
-        <label style={labelStyle}>Profil Investisseur</label>
-        <select style={{ ...inputStyle, color: "#71717a" }}>
-          <option value="">Sélectionner...</option>
-          <option>Investisseur Privé</option>
-          <option>Promoteur Immobilier</option>
-          <option>Fonds d'Investissement</option>
-          <option>Propriétaire Foncier</option>
-          <option>Agent Immobilier</option>
-        </select>
-      </div>
-      <div><label style={labelStyle}>Mot de passe</label><InputField placeholder="••••••••" type="password" /></div>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-        <input type="checkbox" id="cgu" style={{ accentColor: "#eab308", marginTop: "2px" }} />
-        <label htmlFor="cgu" style={{ color: "#71717a", fontSize: "12px", lineHeight: 1.6 }}>J'accepte les conditions d'utilisation et la politique de confidentialité d'Atlas Prime Assets.</label>
-      </div>
-      <button onClick={() => setPage("dashboard")} type="button" style={{
-        background: "#eab308", color: "#000", border: "none", cursor: "pointer",
-        fontSize: "12px", fontWeight: 700, letterSpacing: "0.12em",
-        textTransform: "uppercase", padding: "14px", borderRadius: "8px", transition: "background 0.2s",
-      }}
-        onMouseEnter={e => e.currentTarget.style.background = "#facc15"}
-        onMouseLeave={e => e.currentTarget.style.background = "#eab308"}
-      >
-        Créer mon Compte
-      </button>
-      <div style={{ borderTop: "1px solid #27272a", paddingTop: "16px", textAlign: "center" }}>
-        <span style={{ color: "#71717a", fontSize: "13px" }}>Déjà membre ? </span>
-        <button onClick={() => setPage("login")} style={{ background: "none", border: "none", color: "#facc15", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Se connecter</button>
-      </div>
-    </form>
-  </AuthCard>
-);
+const Signup = ({ setPage }) => <SignupForm setPage={setPage} />;
 
 /* ── DASHBOARD ── */
 const Dashboard = ({ setPage }) => {
