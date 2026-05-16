@@ -1,7 +1,7 @@
 import { useListings } from "./context/ListingsContext";
 import { useState } from "react";
 
-function AdminDashboard({ onLogout }) {
+function commit -m "Update changesAdminDashboard({ onLogout }) {
   const {
     listings,
     addListing,

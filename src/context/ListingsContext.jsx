@@ -1,125 +1,196 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { listingsService, accessRequestsService } from "../lib/supabaseService";
+import { useAuth } from "./AuthContext";
 
-// Donnees de depart (remplace par tes vrais terrains)
-const initialListings = [
-  {
-    id: 1,
-    title: "Terrain Bouznika Vue Mer",
-    city: "Bouznika",
-    type: "residential",
-    price: "1,200,000",
-    size: "500",
-    description: "Magnifique terrain avec vue sur mer.",
-    isPrivate: false,
-    isVisible: true,
-    cover: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800",
-    photos: [],
-    pdfs: [],
-  },
-  {
-    id: 2,
-    title: "Terrain Agricole Meknes",
-    city: "Meknes",
-    type: "agricultural",
-    price: "800,000",
-    size: "2000",
-    description: "Grand terrain agricole fertile.",
-    isPrivate: true,
-    isVisible: true,
-    cover: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800",
-    photos: [],
-    pdfs: [],
-  },
-];
-
-// Creer le contexte
 const ListingsContext = createContext();
 
-// Provider : enveloppe toute ton app
 export function ListingsProvider({ children }) {
-  const [listings, setListings] = useState(initialListings);
+  const { user, isAdmin } = useAuth();
+  const [listings, setListings] = useState([]);
+  const [publicListings, setPublicListings] = useState([]);
+  const [adminListings, setAdminListings] = useState([]);
   const [accessRequests, setAccessRequests] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load public listings
+  useEffect(() => {
+    const loadPublicListings = async () => {
+      try {
+        setLoading(true);
+        const data = await listingsService.getPublicListings();
+        setPublicListings(data);
+        setListings(data);
+      } catch (err) {
+        console.error("Error loading listings:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPublicListings();
+  }, []);
+
+  // Load admin listings
+  useEffect(() => {
+    if (isAdmin && user) {
+      const loadAdminListings = async () => {
+        try {
+          const data = await listingsService.getAdminListings(user.id);
+          setAdminListings(data);
+        } catch (err) {
+          console.error("Error loading admin listings:", err);
+        }
+      };
+
+      loadAdminListings();
+    }
+  }, [isAdmin, user]);
 
   // Ajouter un listing
-  const addListing = (listing) => {
-    const newListing = {
-      ...listing,
-      id: Date.now(),
-      isVisible: true,
-    };
-    setListings((prev) => [newListing, ...prev]);
-  };
-
-  // Soumettre une demande d'accès Elite
-  const submitAccessRequest = (request) => {
-    const newRequest = {
-      ...request,
-      id: Date.now(),
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
-    setAccessRequests((prev) => [newRequest, ...prev]);
-  };
-
-  const approveAccessRequest = (id) => {
-    setAccessRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, status: "approved" } : req
-      )
-    );
-  };
-
-  const rejectAccessRequest = (id) => {
-    setAccessRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, status: "rejected" } : req
-      )
-    );
+  const addListing = async (listing) => {
+    try {
+      setError(null);
+      const newListing = await listingsService.createListing(listing);
+      if (isAdmin) {
+        setAdminListings((prev) => [newListing, ...prev]);
+      }
+      return newListing;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
   };
 
   // Modifier un listing
-  const updateListing = (id, updatedData) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...updatedData } : l))
-    );
+  const updateListing = async (id, updatedData) => {
+    try {
+      setError(null);
+      const updated = await listingsService.updateListing(id, updatedData);
+      if (isAdmin) {
+        setAdminListings((prev) =>
+          prev.map((l) => (l.id === id ? updated : l))
+        );
+      }
+      setPublicListings((prev) =>
+        prev.map((l) => (l.id === id ? updated : l))
+      );
+      return updated;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
   };
 
   // Supprimer un listing
-  const deleteListing = (id) => {
-    setListings((prev) => prev.filter((l) => l.id !== id));
+  const deleteListing = async (id) => {
+    try {
+      setError(null);
+      await listingsService.deleteListing(id);
+      setAdminListings((prev) => prev.filter((l) => l.id !== id));
+      setPublicListings((prev) => prev.filter((l) => l.id !== id));
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
   };
 
-  // Toggle visibilite (public / prive)
-  const togglePrivate = (id) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, isPrivate: !l.isPrivate } : l))
-    );
+  // Upload image
+  const uploadImage = async (file, listingId) => {
+    try {
+      setError(null);
+      const url = await listingsService.uploadImage(file, listingId);
+      return url;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
   };
 
-  // Listings publics uniquement (pour le site)
-  const publicListings = listings.filter((l) => !l.isPrivate && l.isVisible);
+  // Upload document
+  const uploadDocument = async (file, listingId, documentName) => {
+    try {
+      setError(null);
+      const url = await listingsService.uploadDocument(file, listingId, documentName);
+      return url;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  // Demander accès Off Market
+  const submitAccessRequest = async (listingId, message = "") => {
+    try {
+      setError(null);
+      if (!user) throw new Error("Must be logged in");
+      
+      const request = await accessRequestsService.createAccessRequest(
+        user.id,
+        listingId,
+        message
+      );
+      setAccessRequests((prev) => [request, ...prev]);
+      return request;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  // Approuver demande d'accès (admin)
+  const approveAccessRequest = async (id) => {
+    try {
+      setError(null);
+      const updated = await accessRequestsService.approveRequest(id);
+      setAccessRequests((prev) =>
+        prev.map((req) => (req.id === id ? updated : req))
+      );
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  // Rejeter demande d'accès (admin)
+  const rejectAccessRequest = async (id) => {
+    try {
+      setError(null);
+      const updated = await accessRequestsService.rejectRequest(id);
+      setAccessRequests((prev) =>
+        prev.map((req) => (req.id === id ? updated : req))
+      );
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const value = {
+    listings,
+    publicListings,
+    adminListings,
+    accessRequests,
+    loading,
+    error,
+    addListing,
+    updateListing,
+    deleteListing,
+    uploadImage,
+    uploadDocument,
+    submitAccessRequest,
+    approveAccessRequest,
+    rejectAccessRequest,
+  };
 
   return (
-    <ListingsContext.Provider
-      value={{
-        listings,        // Tous les listings (pour le dashboard)
-        publicListings,  // Listings publics (pour le site)
-        addListing,
-        updateListing,
-        deleteListing,
-        togglePrivate,
-        accessRequests,
-        submitAccessRequest,
-        approveAccessRequest,
-        rejectAccessRequest,
-      }}
-    >
+    <ListingsContext.Provider value={value}>
       {children}
     </ListingsContext.Provider>
   );
 }
 
-// Hook pour utiliser le contexte facilement
 export function useListings() {
   return useContext(ListingsContext);
 }
